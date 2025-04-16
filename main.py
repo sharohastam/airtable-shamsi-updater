@@ -1,44 +1,34 @@
-import requests
+from flask import Flask, request
 from persiantools.jdatetime import JalaliDate
-import datetime
+import requests
 import os
 
-# گرفتن تاریخ شمسی
-today_gregorian = datetime.datetime.today()
-today_jalali = JalaliDate(today_gregorian).strftime('%Y/%m/%d')
+app = Flask(__name__)
 
-# گرفتن اطلاعات از سکرت‌ها
-base_id = os.environ["AIRTABLE_BASE_ID"]
-table_name = os.environ["AIRTABLE_TABLE_NAME"]
-api_key = os.environ["AIRTABLE_TOKEN"]
-field_name = "تاریخ شمسی"
+AIRTABLE_TOKEN = os.environ["AIRTABLE_TOKEN"]
+AIRTABLE_BASE_ID = os.environ["AIRTABLE_BASE_ID"]
+AIRTABLE_TABLE_NAME = os.environ["AIRTABLE_TABLE_NAME"]
 
-# آماده‌سازی آدرس API
-url = f"https://api.airtable.com/v0/{base_id}/{table_name}"
+@app.route("/", methods=["POST"])
+def update_date():
+    data = request.get_json()
+    record_id = data["record_id"]
+    today_jalali = str(JalaliDate.today())
 
-# آماده‌سازی Header
-headers = {
-    "Authorization": f"Bearer {api_key}",
-    "Content-Type": "application/json"
-}
+    url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}/{record_id}"
+    headers = {
+        "Authorization": f"Bearer {AIRTABLE_TOKEN}",
+        "Content-Type": "application/json"
+    }
 
-# آماده‌سازی داده‌ها
-payload = {
-    "records": [
-        {
-            "fields": {
-                field_name: today_jalali
-            }
+    payload = {
+        "fields": {
+            "تاریخ شمسی": today_jalali
         }
-    ]
-}
+    }
 
-# ارسال درخواست به Airtable
-response = requests.post(url, json=payload, headers=headers)
+    res = requests.patch(url, headers=headers, json=payload)
+    return res.text, res.status_code
 
-# بررسی نتیجه
-if response.status_code in [200, 201]:
-    print("تاریخ شمسی با موفقیت ثبت شد:", today_jalali)
-else:
-    print("خطا در ثبت:", response.status_code)
-    print(response.text)
+if __name__ == "__main__":
+    app.run()
