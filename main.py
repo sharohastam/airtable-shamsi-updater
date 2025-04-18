@@ -1,29 +1,47 @@
-from flask import Flask, request
-from persiantools.jdatetime import JalaliDate
+from flask import Flask, request, jsonify
 import requests
-import os
+import jdatetime
 
 app = Flask(__name__)
 
-AIRTABLE_TOKEN = os.environ['AIRTABLE_TOKEN']
-AIRTABLE_BASE_ID = os.environ['AIRTABLE_BASE_ID']
-AIRTABLE_TABLE_NAME = os.environ['AIRTABLE_TABLE_NAME']
+# مشخصات Airtable
+AIRTABLE_TOKEN = "patGp0SNiIQsvaHrw.a875fefe22ba313abc03cc4f3acafbd573a0a1072354a493049fbcd17630292c"
+base_id = "appNNY7mUzJrjbwlv"
+table_name = "Currencylog"
+field_name = "تاریخ شمسی"
 
 @app.route("/", methods=["POST"])
-def update_date():
-    data = request.get_json()
-    record_id = data["record_id"]
-    today_jalali = str(JalaliDate.today())
+def update_record():
+    try:
+        data = request.get_json()
+        record_id = data.get("record_id")
 
-    url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}/{record_id}"
-    headers = {
-        "Authorization": f"Bearer {AIRTABLE_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "fields": {
-            "تاریخ شمسی": today_jalali
+        if not record_id:
+            return jsonify({"error": "No record_id provided"}), 400
+
+        # گرفتن تاریخ شمسی امروز
+        today_shamsi = jdatetime.date.today().strftime('%Y/%m/%d')
+
+        # ساخت URL برای PATCH
+        url = f"https://api.airtable.com/v0/{base_id}/{table_name}/{record_id}"
+        headers = {
+            "Authorization": f"Bearer {AIRTABLE_TOKEN}",
+            "Content-Type": "application/json"
         }
-    }
-    res = requests.patch(url, headers=headers, json=payload)
-    return res.text, res.status_code
+        payload = {
+            "fields": {
+                field_name: today_shamsi
+            }
+        }
+
+        # ارسال درخواست به Airtable
+        response = requests.patch(url, headers=headers, json=payload)
+        response.raise_for_status()
+
+        return jsonify({"message": "تاریخ شمسی ثبت شد", "date": today_shamsi}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run()
