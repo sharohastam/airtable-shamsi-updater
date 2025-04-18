@@ -4,11 +4,11 @@ import jdatetime
 
 app = Flask(__name__)
 
-# مشخصات Airtable
+# تنظیمات Airtable
 AIRTABLE_TOKEN = "patGp0SNiIQsvaHrw.a875fefe22ba313abc03cc4f3acafbd573a0a1072354a493049fbcd17630292c"
 base_id = "appNNY7mUzJrjbwlv"
 table_name = "Currencylog"
-field_name = "تاریخ شمسی"
+field_name = "Tarikh"  # اسم جدید ستون تاریخ شمسی
 
 @app.route("/", methods=["POST"])
 def update_record():
@@ -19,10 +19,10 @@ def update_record():
         if not record_id:
             return jsonify({"error": "No record_id provided"}), 400
 
-        # گرفتن تاریخ شمسی امروز
+        # ساخت تاریخ شمسی امروز
         today_shamsi = jdatetime.date.today().strftime('%Y/%m/%d')
 
-        # ساخت URL برای PATCH
+        # ساخت آدرس برای ویرایش رکورد
         url = f"https://api.airtable.com/v0/{base_id}/{table_name}/{record_id}"
         headers = {
             "Authorization": f"Bearer {AIRTABLE_TOKEN}",
@@ -34,11 +34,11 @@ def update_record():
             }
         }
 
-        # ارسال درخواست به Airtable
+        # ارسال PATCH به Airtable
         response = requests.patch(url, headers=headers, json=payload)
         response.raise_for_status()
 
-        return jsonify({"message": "تاریخ شمسی ثبت شد", "date": today_shamsi}), 200
+        return jsonify({"message": "تاریخ شمسی با موفقیت ثبت شد", "date": today_shamsi}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
